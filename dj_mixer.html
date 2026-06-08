@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&display=swap');
+/* ── SPOTIFY PALETTE ──
+  bg-base:     #121212
+  bg-panel:    #181818
+  bg-elevated: #242424
+  bg-hover:    #2a2a2a
+  green:       #1db954
+  green-dim:   #158a3e
+  green-glow:  rgba(29,185,84,.35)
+  white:       #ffffff
+  text-primary:#e8e8e8
+  text-muted:  #a7a7a7
+  text-faint:  #535353
+  border:      #282828
+*/
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#121212;color:#e8e8e8;font-family:'Space Mono',monospace;font-size:13px;min-height:100vh;}
+.app{max-width:900px;margin:0 auto;padding:20px 14px 60px;}
+.hdr{margin-bottom:20px;}
+.hdr h1{font-family:'Bebas Neue',sans-serif;font-size:46px;letter-spacing:6px;color:#ffffff;line-height:1;}
+.hdr-row{display:flex;align-items:center;gap:12px;margin-bottom:4px;}
+.ai-tag{background:#181818;border:1px solid #1db954;color:#1db954;font-size:9px;letter-spacing:3px;padding:3px 9px;border-radius:2px;}
+.hdr-sub{font-size:9px;color:#535353;letter-spacing:2px;}
+.panel{background:#181818;border:1px solid #282828;border-radius:6px;padding:14px;margin-bottom:14px;}
+.plbl{font-size:9px;letter-spacing:3px;color:#535353;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.plbl::after{content:'';flex:1;height:1px;background:#282828;}
+.dropzone{border:1px dashed #282828;border-radius:4px;padding:16px;text-align:center;cursor:pointer;transition:all 0.2s;background:#121212;}
+.dropzone:hover,.dropzone.over{border-color:#1db954;background:#1a1a1a;}
+.dropzone .dz-icon{font-size:24px;margin-bottom:5px;}
+.dropzone p{font-size:11px;color:#535353;}
+.dropzone span{color:#1db954;}
+#file-input{display:none;}
+.song-pool{max-height:150px;overflow-y:auto;}
+.song-pool::-webkit-scrollbar{width:3px;}
+.song-pool::-webkit-scrollbar-thumb{background:#282828;}
+.sitem{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:3px;margin-bottom:2px;background:#121212;}
+.sdot{width:7px;height:7px;border-radius:50%;background:#282828;flex-shrink:0;}
+.sdot.analyzing{background:#f0a800;animation:pulse .6s ease-in-out infinite alternate;}
+.sdot.ready{background:#1db954;}
+@keyframes pulse{from{opacity:.3;}to{opacity:1;}}
+.sname{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#a7a7a7;font-size:11px;}
+.sbpm{font-size:11px;color:#1db954;min-width:48px;text-align:right;}
+.sdur{font-size:10px;color:#535353;min-width:32px;text-align:right;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;}
+.sc{background:#121212;border:1px solid #282828;border-radius:4px;padding:9px;}
+.sc-t{font-size:9px;color:#535353;letter-spacing:2px;margin-bottom:3px;}
+.sc-v{font-size:18px;font-family:'Bebas Neue',sans-serif;color:#1db954;letter-spacing:2px;}
+.ml-bw{margin-top:8px;}
+.ml-bl{display:flex;justify-content:space-between;font-size:9px;color:#535353;margin-bottom:3px;}
+.ml-bg{background:#282828;border-radius:2px;height:4px;overflow:hidden;}
+.ml-bf{height:100%;border-radius:2px;background:linear-gradient(90deg,#158a3e,#1db954);transition:width .8s cubic-bezier(.4,0,.2,1);}
+#fft-canvas{display:block;width:100%;height:60px;}
+#wave-canvas{display:block;width:100%;height:36px;margin-top:5px;}
+.rec-btn{width:100%;padding:11px;background:#1db954;border:1px solid #1db954;color:#000000;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:3px;cursor:pointer;border-radius:22px;text-transform:uppercase;transition:all 0.2s;margin-bottom:14px;font-weight:700;}
+.rec-btn:hover:not(:disabled){background:#1ed760;border-color:#1ed760;transform:scale(1.02);}
+.rec-btn:disabled{opacity:.4;cursor:not-allowed;}
+.rec-btn.running{animation:bglow .8s ease-in-out infinite alternate;}
+@keyframes bglow{from{box-shadow:0 0 4px rgba(29,185,84,.2);}to{box-shadow:0 0 18px rgba(29,185,84,.6);}}
+
+/* ── AUTO MIX BANNER ── */
+.automix-banner{background:#181818;border:1px solid #282828;border-radius:6px;padding:14px;margin-bottom:14px;}
+.automix-top{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
+.automix-btn{display:flex;align-items:center;gap:8px;padding:10px 18px;border-radius:22px;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:2px;cursor:pointer;border:1px solid;transition:all .2s;text-transform:uppercase;font-weight:700;}
+.automix-btn.start{background:#1db954;border-color:#1db954;color:#000000;}
+.automix-btn.start:hover{background:#1ed760;border-color:#1ed760;transform:scale(1.02);}
+.automix-btn.start.on{background:#158a3e;border-color:#1db954;color:#1ed760;animation:amglow .9s ease-in-out infinite alternate;}
+@keyframes amglow{from{box-shadow:0 0 4px rgba(29,185,84,.3);}to{box-shadow:0 0 18px rgba(29,185,84,.7);}}
+.automix-btn.stop{background:#282828;border-color:#535353;color:#e05050;}
+.automix-btn.stop:hover{background:#2a2a2a;border-color:#e05050;}
+.am-settings{display:flex;gap:10px;align-items:center;flex-wrap:wrap;flex:1;}
+.am-setting{display:flex;flex-direction:column;gap:3px;}
+.am-setting label{font-size:9px;color:#535353;letter-spacing:2px;}
+.am-setting input[type=number]{background:#121212;border:1px solid #282828;color:#1db954;font-family:'Space Mono',monospace;font-size:12px;width:64px;padding:5px 7px;border-radius:3px;outline:none;}
+.am-setting input[type=number]:focus{border-color:#1db954;}
+
+/* progress bar for auto mix */
+.am-progress-wrap{position:relative;height:24px;background:#121212;border-radius:4px;overflow:hidden;border:1px solid #282828;}
+.am-progress-track{position:absolute;top:0;left:0;height:100%;background:linear-gradient(90deg,#158a3e,#1db954);border-radius:4px;transition:width .2s linear;}
+.am-progress-fade{position:absolute;top:0;right:0;height:100%;background:linear-gradient(90deg,transparent,rgba(29,185,84,.15));width:20%;border-radius:0 4px 4px 0;}
+.am-progress-label{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:9px;color:#1db954;letter-spacing:2px;white-space:nowrap;z-index:2;}
+.am-status-row{display:flex;justify-content:space-between;font-size:9px;color:#535353;margin-top:6px;}
+.am-status-row .am-track-info{color:#1db954;}
+.am-status-row .am-next-info{color:#535353;}
+.am-countdown{color:#1ed760 !important;font-weight:bold;}
+
+/* crossfade viz */
+.xfade-viz{display:flex;gap:2px;align-items:flex-end;height:28px;margin-top:8px;}
+.xfade-bar{flex:1;border-radius:1px;transition:height .1s linear;}
+.xfade-a{background:#1db954;}
+.xfade-b{background:#535353;}
+.xfade-label{font-size:9px;color:#535353;display:flex;justify-content:space-between;margin-top:3px;}
+
+/* ── PLAYLIST ── */
+.pl-item{display:grid;grid-template-columns:24px 12px 1fr 54px 60px 42px;gap:6px;align-items:center;padding:8px;border-radius:4px;border:1px solid #282828;margin-bottom:4px;background:#181818;transition:background .15s,border-color .15s;cursor:pointer;user-select:none;}
+.pl-item:hover{border-color:#1db954;background:#242424;}
+.pl-item.active{border-color:#1db954 !important;background:#242424 !important;}
+.pl-item.active .pl-name{color:#1db954;}
+.pl-item.am-active{border-color:#1db954 !important;background:#1a2e1e !important;}
+.pl-item.am-active .pl-name{color:#1ed760 !important;}
+.pl-item.am-next{border-color:#158a3e !important;}
+.pl-item.am-next .pl-name{color:#1db954 !important;}
+.pl-num{color:#535353;font-size:10px;text-align:center;}
+.pl-dot{width:5px;height:5px;border-radius:50%;background:#1db954;opacity:0;}
+.pl-item.active .pl-dot{opacity:1;animation:pulse .5s infinite alternate;}
+.pl-item.am-active .pl-dot{opacity:1;background:#1db954;animation:pulse .5s infinite alternate;}
+.pl-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#e8e8e8;font-size:11px;}
+.pl-bpm{font-size:11px;font-weight:700;color:#1db954;text-align:center;}
+.pl-tr{font-size:9px;text-align:center;}
+.pl-tr.smooth{color:#1db954;}.pl-tr.ok{color:#f0a800;}.pl-tr.hard{color:#ff5050;}
+.pl-dur{font-size:9px;color:#535353;text-align:right;}
+.tr-arrow{text-align:center;font-size:9px;color:#282828;padding:1px 0;}
+.pl-header{display:grid;grid-template-columns:24px 12px 1fr 54px 60px 42px;gap:6px;padding:4px 8px;font-size:9px;color:#535353;letter-spacing:1px;margin-bottom:4px;}
+
+
+
+/* ── FOURIER INTELLIGENCE ENGINE ── */
+.fourier-panel{background:#181818;border:1px solid #282828;border-radius:6px;padding:14px;margin-bottom:14px;}
+.fi-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:12px;margin-bottom:12px;}
+.fi-card{background:#121212;border:1px solid #282828;border-radius:5px;padding:12px;min-height:100px;}
+.fi-card.good{border-color:#158a3e;}.fi-card.warn{border-color:#4a3510;}
+.fi-title{font-size:10px;color:#1db954;letter-spacing:2px;text-transform:uppercase;margin-bottom:9px;display:flex;justify-content:space-between;gap:8px;}
+.fi-title .tag{color:#535353;font-size:8px;}
+.fi-split{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.fi-canvas-wrap{background:#0a0a0a;border:1px solid #282828;border-radius:4px;padding:7px;}
+.fi-canvas-wrap canvas{display:block;width:100%;height:58px;}
+.fi-mini-label{font-size:8px;color:#535353;letter-spacing:1px;margin-bottom:5px;text-transform:uppercase;}
+.fi-note{font-size:10px;color:#535353;line-height:1.6;margin-top:8px;}
+.fi-note strong{color:#1db954;font-weight:700;}
+.fi-features{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.fi-feature{background:#181818;border:1px solid #282828;border-radius:4px;padding:8px;}
+.fi-feature .k{font-size:8px;color:#535353;letter-spacing:1px;text-transform:uppercase;margin-bottom:2px;}
+.fi-feature .v{font-size:15px;font-family:'Bebas Neue',sans-serif;color:#1db954;letter-spacing:2px;}
+.band-row{display:grid;grid-template-columns:58px 1fr 55px;gap:8px;align-items:center;margin-bottom:8px;}
+.band-name{font-size:9px;color:#a7a7a7;letter-spacing:1px;}
+.band-range{font-size:8px;color:#535353;text-align:right;}
+.band-bg{height:6px;background:#282828;border-radius:3px;overflow:hidden;}
+.band-fill{height:100%;width:0%;border-radius:3px;background:linear-gradient(90deg,#158a3e,#1db954);transition:width .25s ease;}
+.tr-box{font-size:10px;color:#a7a7a7;line-height:1.8;}
+.tr-box .ok{color:#1db954;}.tr-box .bad{color:#ff5050;}.tr-box .hl{color:#f0a800;}.tr-box .ai{color:#1ed760;}
+.sim-list{display:flex;flex-direction:column;gap:6px;}
+.sim-row{display:grid;grid-template-columns:1fr 45px;gap:8px;align-items:center;font-size:10px;color:#a7a7a7;}
+.sim-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sim-bg{height:5px;background:#282828;border-radius:3px;overflow:hidden;margin-top:3px;}
+.sim-fill{height:100%;width:0%;background:linear-gradient(90deg,#158a3e,#1db954);border-radius:3px;}
+.dsp-btn{width:100%;padding:9px;background:#121212;border:1px solid #282828;color:#535353;font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;cursor:pointer;border-radius:4px;text-transform:uppercase;transition:all .2s;margin-top:8px;}
+.dsp-btn:hover{background:#242424;border-color:#1db954;color:#1db954;}
+.dsp-explain{display:none;margin-top:9px;border-top:1px solid #282828;padding-top:9px;font-size:10px;color:#535353;line-height:1.7;}
+.dsp-explain.show{display:block;}
+.formula{font-size:13px;color:#ffffff;text-align:center;background:#0a0a0a;border:1px solid #282828;border-radius:4px;padding:8px;margin:6px 0;font-family:'Space Mono',monospace;}
+@media(max-width:720px){.fi-grid,.fi-split{grid-template-columns:1fr;}.fi-features{grid-template-columns:1fr 1fr;}}
+
+/* ── STEMS ── */
+.stem-section{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+.stem-card{background:#181818;border:1px solid #282828;border-radius:6px;padding:13px;}
+.stem-card.vc{border-color:#282828;}.stem-card.bt{border-color:#282828;}
+.stitle{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;margin-bottom:1px;}
+.stitle.v{color:#1db954;}.stitle.b{color:#1ed760;}
+.ssub{font-size:9px;color:#535353;letter-spacing:2px;margin-bottom:10px;}
+.stem-viz canvas{display:block;width:100%;height:46px;border-radius:3px;}
+.stem-ctrl{display:flex;align-items:center;gap:8px;margin:8px 0;}
+.spbtn{background:#121212;border:1px solid #282828;color:#535353;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
+.spbtn:hover{border-color:#1db954;color:#1db954;}
+.spbtn.av{border-color:#1db954 !important;color:#1db954 !important;box-shadow:0 0 7px rgba(29,185,84,.4);}
+.spbtn.ab{border-color:#1ed760 !important;color:#1ed760 !important;box-shadow:0 0 7px rgba(30,215,96,.4);}
+.si{flex:1;overflow:hidden;}
+.si .sn{font-size:11px;color:#a7a7a7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.si .ss{font-size:9px;color:#535353;margin-top:2px;}
+.svr{display:flex;align-items:center;gap:7px;}
+.svl{font-size:9px;color:#535353;min-width:22px;letter-spacing:1px;}
+.svv{font-size:9px;color:#535353;min-width:26px;text-align:right;}
+
+/* ── EQ ── */
+.eq-panel{background:#181818;border:1px solid #282828;border-radius:6px;padding:14px;margin-bottom:14px;}
+.eq-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:4px;}
+.eq-band{text-align:center;}
+.eq-band-label{font-size:9px;letter-spacing:2px;color:#535353;margin-bottom:8px;text-transform:uppercase;}
+.eq-knob-wrap{display:flex;flex-direction:column;align-items:center;gap:5px;}
+.eq-slider{writing-mode:vertical-lr;direction:rtl;-webkit-appearance:slider-vertical;width:22px;height:82px;cursor:pointer;background:transparent;}
+.eq-slider::-webkit-slider-runnable-track{background:#282828;width:4px;border-radius:2px;}
+.eq-slider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;cursor:pointer;margin-left:-5px;}
+.eq-band.bass .eq-slider::-webkit-slider-thumb{background:#1db954;}
+.eq-band.mid  .eq-slider::-webkit-slider-thumb{background:#1ed760;}
+.eq-band.tre  .eq-slider::-webkit-slider-thumb{background:#158a3e;}
+.eq-db{font-size:12px;font-weight:700;}
+.eq-band.bass .eq-db{color:#1db954;}.eq-band.mid .eq-db{color:#1ed760;}.eq-band.tre .eq-db{color:#158a3e;}
+.eq-freq{font-size:9px;color:#535353;margin-top:1px;}
+.eq-presets{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px;}
+.ep-btn{background:#121212;border:1px solid #282828;color:#535353;padding:4px 9px;border-radius:12px;font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;transition:all .15s;}
+.ep-btn:hover{border-color:#1db954;color:#1db954;}
+.ep-btn.active{border-color:#1db954;color:#000000;background:#1db954;}
+
+/* ── PLAYER ── */
+.player{background:#181818;border:1px solid #282828;border-radius:6px;padding:14px;}
+.player-top{display:flex;align-items:center;gap:11px;margin-bottom:10px;}
+.disc{width:40px;height:40px;border-radius:50%;background:conic-gradient(#242424 0deg,#121212 90deg,#242424 180deg,#121212 270deg);border:1px solid #282828;position:relative;flex-shrink:0;transition:box-shadow .5s ease;}
+.disc.spin{animation:spin 1.8s linear infinite;box-shadow:0 0 14px rgba(29,185,84,.4);}
+@keyframes spin{to{transform:rotate(360deg);}}
+.disc::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:7px;height:7px;border-radius:50%;background:#1db954;box-shadow:0 0 7px rgba(29,185,84,.9);}
+.pi{flex:1;overflow:hidden;}
+.pi .pn{font-size:12px;color:#ffffff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:opacity .4s ease;}
+.pi .pm{font-size:9px;color:#535353;margin-top:2px;}
+.pi .pm .pb{color:#1db954;margin-right:8px;}
+.pw{background:#282828;border-radius:2px;height:4px;cursor:pointer;margin-bottom:3px;position:relative;transition:height .15s;}
+.pw:hover{height:6px;}
+.pf{height:100%;background:linear-gradient(90deg,#158a3e,#1db954);border-radius:2px;transition:width .1s linear;}
+/* automix play region marker */
+.am-region{position:absolute;top:0;height:100%;background:rgba(29,185,84,.2);border-radius:2px;pointer-events:none;}
+.tr{display:flex;justify-content:space-between;font-size:9px;color:#535353;margin-bottom:10px;}
+.cr{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;}
+.cb{background:transparent;border:none;color:#a7a7a7;width:31px;height:31px;border-radius:50%;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.cb:hover{color:#ffffff;transform:scale(1.08);}
+.cb.big{width:41px;height:41px;font-size:18px;background:#1db954;color:#000000;border-radius:50%;}
+.cb.big:hover{background:#1ed760;transform:scale(1.06);}
+.vr{display:flex;align-items:center;gap:8px;}
+.vl{font-size:9px;color:#535353;min-width:22px;letter-spacing:2px;}
+.vv{font-size:9px;color:#535353;min-width:26px;text-align:right;}
+input[type=range]{-webkit-appearance:none;width:100%;height:4px;background:#282828;border-radius:2px;outline:none;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:#1db954;cursor:pointer;}
+.fx-row{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px;}
+.fx-chip{background:#121212;border:1px solid #282828;color:#535353;padding:4px 9px;border-radius:12px;font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;transition:all .15s;}
+.fx-chip:hover{border-color:#1db954;color:#1db954;}
+.fx-chip.on{border-color:#1db954;color:#000000;background:#1db954;}
+.empty{text-align:center;padding:20px;color:#535353;font-size:11px;letter-spacing:1px;}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="hdr">
+    <div class="hdr-row"><h1>AI-DJ</h1><div class="ai-tag">FOURIER + ML + AUTO MIX</div></div>
+    <div class="hdr-sub">Song Order Recommender · Auto Mix · Vocal/Beat Separator · 3-Band EQ</div>
+  </div>
+
+  <!-- LOAD + FFT -->
+  <div class="two-col">
+    <div class="panel">
+      <div class="plbl">01 — Load Songs</div>
+      <div class="dropzone" id="dropzone" onclick="document.getElementById('file-input').click()">
+        <div class="dz-icon">🎵</div>
+        <p>Drop audio files or <span>browse</span></p>
+        <p style="margin-top:4px;font-size:9px;color:#333">MP3 · WAV · OGG · FLAC</p>
+      </div>
+      <input type="file" id="file-input" multiple accept="audio/*">
+      <div style="margin-top:10px;">
+        <div class="plbl">Song Pool</div>
+        <div class="song-pool" id="song-pool"><div class="empty">No songs loaded</div></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="plbl">02 — FFT Analysis</div>
+      <canvas id="fft-canvas" width="400" height="60"></canvas>
+      <canvas id="wave-canvas" width="400" height="36"></canvas>
+      <div class="stats-row">
+        <div class="sc"><div class="sc-t">TRACKS</div><div class="sc-v" id="stat-tracks">0</div></div>
+        <div class="sc"><div class="sc-t">BPM RANGE</div><div class="sc-v" id="stat-bpm">—</div></div>
+        <div class="sc"><div class="sc-t">AVG ENERGY</div><div class="sc-v" id="stat-energy">—</div></div>
+      </div>
+      <div class="ml-bw">
+        <div class="ml-bl"><span>ML CONFIDENCE</span><span id="ml-conf-val">—</span></div>
+        <div class="ml-bg"><div class="ml-bf" id="ml-conf-bar" style="width:0%"></div></div>
+      </div>
+      <div class="ml-bw" style="margin-top:6px;">
+        <div class="ml-bl"><span>TRANSITION SMOOTHNESS</span><span id="smooth-val">—</span></div>
+        <div class="ml-bg"><div class="ml-bf" id="smooth-bar" style="width:0%;background:linear-gradient(90deg,#006030,#00c878)"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <button class="rec-btn" id="rec-btn" onclick="runRecommendation()" disabled>✦ ANALYZE &amp; RECOMMEND OPTIMAL PLAY ORDER</button>
+
+  <!-- PLAYLIST -->
+  <div class="panel" style="margin-bottom:14px;">
+    <div class="plbl">04 — Recommended Order <span style="color:#5060ff;font-size:9px;margin-left:6px;">click to play</span></div>
+    <div id="playlist-output"><div class="empty">Run analysis to see AI-recommended order</div></div>
+  </div>
+
+
+  <!-- FOURIER INTELLIGENCE ENGINE -->
+  <div class="fourier-panel">
+    <div class="plbl">05 — Fourier Intelligence Engine <span style="color:#f0a800;margin-left:6px;">DSP + FFT EXPLAINED</span></div>
+
+    <div class="fi-grid">
+      <div class="fi-card">
+        <div class="fi-title">Time Domain vs Frequency Domain <span class="tag">Waveform → FFT</span></div>
+        <div class="fi-split">
+          <div class="fi-canvas-wrap">
+            <div class="fi-mini-label">Raw Waveform / Time Domain</div>
+            <canvas id="fi-wave" width="360" height="58"></canvas>
+          </div>
+          <div class="fi-canvas-wrap">
+            <div class="fi-mini-label">FFT Spectrum / Frequency Domain</div>
+            <canvas id="fi-fft" width="360" height="58"></canvas>
+          </div>
+        </div>
+        <div class="fi-note"><strong>Fourier Transform</strong> converts the song from time representation into frequency representation, so the system can detect bass, mid, treble, BPM, energy and brightness.</div>
+        <button class="dsp-btn" onclick="toggleDSPMode()">SHOW HOW FFT WORKS</button>
+        <div class="dsp-explain" id="dsp-explain">
+          <div class="formula">X(f)=∫ x(t)e<sup>-j2πft</sup>dt</div>
+          Audio starts as a waveform x(t). FFT breaks it into frequencies X(f). The AI then compares extracted features such as BPM, energy, spectral centroid and frequency-band strength to recommend smoother song transitions.
+        </div>
+      </div>
+
+      <div class="fi-card good">
+        <div class="fi-title">Live Audio Analysis <span class="tag">Detected Features</span></div>
+        <div class="fi-features">
+          <div class="fi-feature"><div class="k">BPM</div><div class="v" id="fi-bpm">—</div></div>
+          <div class="fi-feature"><div class="k">Dominant Freq.</div><div class="v" id="fi-dom">—</div></div>
+          <div class="fi-feature"><div class="k">Spectral Centroid</div><div class="v" id="fi-cent">—</div></div>
+          <div class="fi-feature"><div class="k">Mood</div><div class="v" id="fi-mood">—</div></div>
+        </div>
+        <div style="margin-top:10px;">
+          <div class="band-row"><div class="band-name">BASS</div><div class="band-bg"><div class="band-fill" id="fi-bass"></div></div><div class="band-range">20–250Hz</div></div>
+          <div class="band-row"><div class="band-name">MID</div><div class="band-bg"><div class="band-fill" id="fi-mid"></div></div><div class="band-range">250Hz–4k</div></div>
+          <div class="band-row"><div class="band-name">TREBLE</div><div class="band-bg"><div class="band-fill" id="fi-treble"></div></div><div class="band-range">4k–20k</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="fi-grid">
+      <div class="fi-card warn">
+        <div class="fi-title">Why AI Picked This Song Next <span class="tag">Transition Reasoning</span></div>
+        <div class="tr-box" id="transition-reason">
+          Select or play a track after recommendation to see BPM difference, spectral similarity, energy match and predicted transition smoothness.
+        </div>
+      </div>
+      <div class="fi-card">
+        <div class="fi-title">Similarity Matrix <span class="tag">ML Score</span></div>
+        <div class="sim-list" id="similarity-list">
+          <div class="empty" style="padding:8px;">Run analysis to compare songs</div>
+        </div>
+        <div class="fi-note">Machine learning uses Fourier-extracted audio features to compute similarity scores between songs.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PLAYER -->
+  <div class="player">
+    <div class="plbl">08 — Player</div>
+    <div class="player-top">
+      <div class="disc" id="disc"></div>
+      <div class="pi">
+        <div class="pn" id="pname" style="transition:opacity 0.35s ease,transform 0.35s ease;">— No track selected —</div>
+        <div class="pm"><span class="pb" id="pbpm">— BPM  </span><span id="pkey">—</span></div>
+      </div>
+    </div>
+    <div class="pw" id="pw" onclick="seekTo(event)">
+      <div class="am-region" id="am-region" style="display:none;"></div>
+      <div class="pf" id="pf" style="width:0%"></div>
+    </div>
+    <div class="tr"><span id="tcur">0:00</span><span id="ttot">0:00</span></div>
+    <div class="cr">
+      <button class="cb" onclick="prevTrack()">⏮</button>
+      <button class="cb" onclick="toggleShuffle()" id="shuf-btn">⇌</button>
+      <button class="cb big" id="play-btn" onclick="togglePlay()">▶</button>
+      <button class="cb" onclick="toggleLoop()" id="loop-btn">↻</button>
+      <button class="cb" onclick="nextTrack()">⏭</button>
+    </div>
+    <div class="vr">
+      <span class="vl">VOL</span>
+      <input type="range" min="0" max="100" value="80" id="vol" oninput="setVol(this.value)">
+      <span class="vv" id="vol-v">80%</span>
+    </div>
+    <div class="plbl" style="margin-top:11px;">Sound Effects</div>
+    <div class="fx-row" id="fx-row"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════════════════
+const KEYS=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const FX_LIST=[
+  {k:'reverb',l:'REVERB'},{k:'delay',l:'ECHO'},{k:'lowpass',l:'SWEEP↓'},
+  {k:'highpass',l:'SWEEP↑'},{k:'stutter',l:'STUTTER'},{k:'scratch',l:'SCRATCH'},
+  {k:'bitcrush',l:'BITCRUSH'},{k:'flanger',l:'FLANGER'},
+];
+const EQ_PRESETS={
+  flat:[0,0,0],bass:[12,-2,-4],vocal:[-6,8,4],
+  club:[8,2,-2],acoustic:[-4,6,8],electronic:[10,-2,6],
+};
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+let songs=[], playlist=[], currentIdx=-1;
+
+// Audio
+let AC=null, masterGain=null, mainAn=null;
+let bassF=null, midF=null, treF=null, lpF=null, hpF=null;
+
+// Main deck A (current) and deck B (incoming for crossfade)
+let deckA={src:null,gain:null,buf:null,playing:false,startAC:0,offset:0};
+let deckB={src:null,gain:null,buf:null,playing:false,startAC:0,offset:0};
+
+let isLoop=false, isShuffle=false;
+let activeFX=new Set(), stutterIv=null, scratchIv=null;
+
+// Stems
+let vSrc=null,bSrc=null,vPlaying=false,bPlaying=false;
+let vGain=null,bGain=null,vHp=null,vLp=null,bLp=null,bBass=null;
+let vAn=null,bAn=null,vBuf=null,bBuf=null;
+let vStart=0,bStart=0,vOffset=0,bOffset=0;
+
+// ── AUTO MIX STATE ──
+let amActive=false;
+let amTimerA=null;   // fires at (duration - xfade) to start crossfade
+let amTimerB=null;   // fires at duration to cut deck A
+let amXfadeRAF=null; // animation frame for crossfade progress
+let amXfadeStart=0;  // AC time when xfade began
+let amXfadeDur=3;
+let amProgRAF=null;
+let amIdx=0;         // current auto-mix playlist index
+let amSegStart=0;    // AC.currentTime when this segment started
+
+// ═══════════════════════════════════════════════════════
+// INIT AUDIO
+// ═══════════════════════════════════════════════════════
+function initAC(){
+  if(AC)return;
+  AC=new(window.AudioContext||window.webkitAudioContext)();
+  mainAn=AC.createAnalyser(); mainAn.fftSize=512;
+
+  // EQ chain
+  bassF=mkF('lowshelf',250,0);
+  midF=mkF('peaking',1200,0); midF.Q.value=0.8;
+  treF=mkF('highshelf',4000,0);
+  lpF=mkF('lowpass',22000,0);
+  hpF=mkF('highpass',0,0);
+
+  // Master gain
+  masterGain=AC.createGain(); masterGain.gain.value=0.8;
+
+  // Deck gains — go through EQ → master → analyser → out
+  deckA.gain=AC.createGain(); deckA.gain.gain.value=0;
+  deckB.gain=AC.createGain(); deckB.gain.gain.value=0;
+  deckA.gain.connect(bassF);
+  deckB.gain.connect(bassF);
+  bassF.connect(midF); midF.connect(treF); treF.connect(lpF);
+  lpF.connect(hpF); hpF.connect(masterGain);
+  masterGain.connect(mainAn); mainAn.connect(AC.destination);
+
+  // Stems
+  vAn=AC.createAnalyser(); vAn.fftSize=256;
+  bAn=AC.createAnalyser(); bAn.fftSize=256;
+  vGain=AC.createGain(); vGain.gain.value=0.85;
+  bGain=AC.createGain(); bGain.gain.value=0.85;
+  vHp=mkF('highpass',250,0); vLp=mkF('lowpass',5000,0);
+  bLp=mkF('lowpass',320,0);  bBass=mkF('peaking',80,8); bBass.Q.value=1.2;
+  vHp.connect(vLp); vLp.connect(vGain); vGain.connect(vAn); vAn.connect(AC.destination);
+  bLp.connect(bBass); bBass.connect(bGain); bGain.connect(bAn); bAn.connect(AC.destination);
+
+  // buildXfadeViz removed
+  startViz();
+}
+
+function mkF(type,freq,gain){
+  const f=AC.createBiquadFilter();
+  f.type=type; f.frequency.value=freq;
+  if(gain!==undefined) f.gain.value=gain;
+  return f;
+}
+
+// ═══════════════════════════════════════════════════════
+// FEATURE EXTRACTION
+// ═══════════════════════════════════════════════════════
+function extractFeatures(buf){
+  const data=buf.getChannelData(0), sr=buf.sampleRate, N=2048;
+  const win=new Float32Array(N);
+  for(let i=0;i<N;i++) win[i]=0.5*(1-Math.cos(2*Math.PI*i/N));
+  const mid=Math.min(Math.floor(data.length/2), data.length-N);
+  const frame=new Float32Array(N);
+  for(let i=0;i<N;i++) frame[i]=data[mid+i]*win[i];
+  let cent=0,totM=0;
+  const step=Math.max(1,Math.floor(N/128));
+  for(let k=0;k<N/2;k+=2){
+    let re=0,im=0;
+    for(let n=0;n<N;n+=step){const a=2*Math.PI*k*n/N;re+=frame[n]*Math.cos(a);im-=frame[n]*Math.sin(a);}
+    const mag=Math.sqrt(re*re+im*im)/N, freq=k*sr/N;
+    cent+=freq*mag; totM+=mag;
+  }
+  cent=totM>0?cent/totM:1000;
+  let energy=0;
+  const chunk=Math.min(sr*4,data.length);
+  for(let i=0;i<chunk;i++) energy+=data[i]*data[i];
+  energy=Math.sqrt(energy/chunk);
+  const ss=Math.floor(sr*0.01); let pe=0, onsets=[];
+  for(let i=0;i<Math.min(data.length-ss,sr*60);i+=ss){
+    let e=0; for(let j=i;j<i+ss;j++) e+=data[j]*data[j]; e/=ss;
+    if(e-pe>pe*1.5&&(onsets.length===0||i/sr-onsets[onsets.length-1]>0.25)) onsets.push(i/sr);
+    pe=e;
+  }
+  let bpm=120;
+  if(onsets.length>4){
+    let diffs=[]; for(let i=1;i<Math.min(onsets.length,40);i++){const d=onsets[i]-onsets[i-1];if(d>0.28&&d<1.2)diffs.push(d);}
+    if(diffs.length>2){const avg=diffs.reduce((a,b)=>a+b)/diffs.length;bpm=Math.max(60,Math.min(200,Math.round(60/avg)));}
+  }
+  return{bpm,energy:Math.round(energy*1000)/10,centroid:Math.round(cent),
+    key:KEYS[Math.floor(cent/220)%12]+' '+(energy>0.08?'maj':'min'),duration:buf.duration};
+}
+
+// ═══════════════════════════════════════════════════════
+// ML RECOMMENDATION
+// ═══════════════════════════════════════════════════════
+function fVec(s){return[s.bpm/200,Math.min(s.energy/20,1),Math.min(s.centroid/8000,1)];}
+function fDist(a,b){const va=fVec(a),vb=fVec(b),w=[2,1,.5];let d=0;for(let i=0;i<3;i++)d+=w[i]*(va[i]-vb[i])**2;return Math.sqrt(d);}
+function greedyOrder(list){
+  const sorted=[...list].sort((a,b)=>a.bpm-b.bpm);
+  const vis=new Set(),ord=[sorted[0]]; vis.add(sorted[0].id);
+  while(ord.length<list.length){
+    const last=ord[ord.length-1]; let best=null,bd=Infinity;
+    for(const s of list){if(vis.has(s.id))continue;const d=fDist(last,s);if(d<bd){bd=d;best=s;}}
+    if(best){ord.push(best);vis.add(best.id);}
+  }
+  return ord;
+}
+function anneal(ord,iter){
+  if(ord.length<3)return ord;
+  // Scale iterations to playlist size — more songs need exponentially more swaps
+  const iters=iter||Math.max(700,ord.length*ord.length*20);
+  // Cooling rate ensures temperature always drops from 1.0 → 0.001
+  // regardless of iteration count — consistent convergence every time
+  const coolRate=Math.pow(0.001,1/iters);
+  let cur=[...ord],cost=totalCost(cur),T=1;
+  for(let i=0;i<iters;i++){
+    T*=coolRate;
+    const a=1+Math.floor(Math.random()*(cur.length-1));
+    const b=1+Math.floor(Math.random()*(cur.length-1));
+    const nx=[...cur]; [nx[a],nx[b]]=[nx[b],nx[a]];
+    const nc=totalCost(nx);
+    if(nc<cost||Math.random()<Math.exp((cost-nc)/T)){cur=nx;cost=nc;}
+  }
+  return cur;
+}
+// 2-opt: deterministic sweep that checks every pair of positions and
+// reverses any segment that lowers total cost — repeats until no
+// improvement is left, guaranteeing a local optimum every single run
+function twoOpt(ord){
+  if(ord.length<4)return ord;
+  let best=[...ord],improved=true;
+  while(improved){
+    improved=false;
+    for(let i=1;i<best.length-1;i++){
+      for(let j=i+1;j<best.length;j++){
+        const next=[...best];
+        let l=i,r=j; while(l<r){[next[l],next[r]]=[next[r],next[l]];l++;r--;}
+        if(totalCost(next)<totalCost(best)){best=next;improved=true;}
+      }
+    }
+  }
+  return best;
+}
+// Run 3 fully independent annealing passes and return whichever gives
+// the lowest cost — reduces randomness, consistently near-optimal
+function bestOrder(list){
+  const iters=Math.max(700,list.length*list.length*20);
+  let best=null,bestCost=Infinity;
+  for(let run=0;run<3;run++){
+    const candidate=twoOpt(anneal(greedyOrder(list),iters));
+    const c=totalCost(candidate);
+    if(c<bestCost){bestCost=c;best=candidate;}
+  }
+  return best;
+}
+function totalCost(o){let c=0;for(let i=1;i<o.length;i++)c+=fDist(o[i-1],o[i]);return c;}
+function tScore(a,b){const d=Math.abs(a.bpm-b.bpm);return d<=8?'smooth':d<=20?'ok':'hard';}
+function tLabel(a,b){const s=tScore(a,b),d=Math.abs(a.bpm-b.bpm),sym=s==='smooth'?'✓':s==='ok'?'~':'✗';return{cls:s,txt:`±${d}${sym}`};}
+function smoothScore(ord){
+  if(ord.length<2)return 100;
+  let s=0;for(let i=1;i<ord.length;i++){const sc=tScore(ord[i-1],ord[i]);s+=sc==='smooth'?3:sc==='ok'?1.5:0;}
+  return Math.min(100,Math.round(s/(ord.length-1)*100/3));
+}
+
+// ═══════════════════════════════════════════════════════
+// FILE LOADING
+// ═══════════════════════════════════════════════════════
+function handleFiles(files){
+  initAC();
+  Array.from(files).forEach(file=>{
+    if(!file.type.startsWith('audio/')&&!file.name.match(/\.(mp3|wav|ogg|flac|aac|m4a)$/i))return;
+    const id=Date.now()+Math.random();
+    const song={id,name:file.name.replace(/\.[^.]+$/,''),bpm:null,energy:null,centroid:null,key:'—',duration:0,buffer:null,status:'analyzing'};
+    songs.push(song); renderPool();
+    const reader=new FileReader();
+    reader.onload=e=>{
+      AC.decodeAudioData(e.target.result.slice(0),buf=>{
+        Object.assign(song,extractFeatures(buf),{buffer:buf,status:'ready'});
+        updateStats(); renderPool();
+        document.getElementById('rec-btn').disabled=songs.filter(s=>s.status==='ready').length<1;
+        // pre-populate Fourier panel as soon as the first song is ready
+        const readySongs=songs.filter(s=>s.status==='ready');
+        if(readySongs.length===1) updateFourierEngine(readySongs[0]);
+      },err=>console.error(err));
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════
+function fmtT(s){const m=Math.floor(s/60);return m+':'+(''+(Math.floor(s%60))).padStart(2,'0');}
+function renderPool(){
+  const el=document.getElementById('song-pool');
+  if(!songs.length){el.innerHTML='<div class="empty">No songs loaded</div>';return;}
+  el.innerHTML=songs.map(s=>`<div class="sitem">
+    <div class="sdot ${s.status}"></div>
+    <div class="sname">${s.name}</div>
+    <div class="sbpm">${s.bpm||'...'}</div>
+    <div class="sdur">${s.duration?fmtT(s.duration):'—'}</div>
+  </div>`).join('');
+}
+function updateStats(){
+  const r=songs.filter(s=>s.status==='ready');
+  document.getElementById('stat-tracks').textContent=songs.length;
+  if(r.length){
+    const bpms=r.map(s=>s.bpm);
+    document.getElementById('stat-bpm').textContent=Math.min(...bpms)+'→'+Math.max(...bpms);
+    document.getElementById('stat-energy').textContent=Math.round(r.reduce((a,s)=>a+s.energy,0)/r.length*10)/10;
+  }
+}
+
+function moodOf(s){
+  if(!s) return '—';
+  if(s.energy>10 && s.bpm>=120 && s.centroid>2500) return 'Energetic';
+  if(s.centroid>3500) return 'Bright';
+  if(s.energy>9 && s.centroid<1800) return 'Dark Bass';
+  if(s.energy<6 && s.bpm<105) return 'Calm';
+  return 'Balanced';
+}
+function simScore(a,b){
+  if(!a||!b) return 0;
+  const d=fDist(a,b);
+  return Math.max(0,Math.min(100,Math.round((1-d)*100)));
+}
+function updateFourierEngine(song){
+  if(!song){return;}
+  const next=playlist.length?playlist[(currentIdx+1)%playlist.length]:null;
+  document.getElementById('fi-bpm').textContent=song.bpm||'—';
+  document.getElementById('fi-cent').textContent=(song.centroid||'—')+(song.centroid?' Hz':'');
+  document.getElementById('fi-mood').textContent=moodOf(song);
+  document.getElementById('fi-dom').textContent=estimateDominantFreq(song)+' Hz';
+  updateBandBars(song);
+  updateTransitionReason(song,next);
+  updateSimilarityList(song);
+  // seed static snapshot on fi-wave and fi-fft if no live audio is playing
+  if(!deckA.playing&&!deckB.playing) seedFourierCanvases(song);
+}
+function seedFourierCanvases(song){
+  const fw=document.getElementById('fi-wave'),ff=document.getElementById('fi-fft');
+  if(!fw||!ff)return;
+  const fwx=fw.getContext('2d'),ffx=ff.getContext('2d');
+  // wave: pseudo-waveform shaped by energy and BPM
+  fwx.fillStyle='#0a0a0a';fwx.fillRect(0,0,fw.width,fw.height);
+  fwx.strokeStyle='#1db954';fwx.lineWidth=1.4;fwx.beginPath();
+  const amp=Math.min(0.85,(song.energy||5)/15)*(fw.height/2-4);
+  const freq1=((song.bpm||120)/60)*0.018,freq2=freq1*2.3;
+  for(let x=0;x<fw.width;x++){
+    const t=x/fw.width*Math.PI*8;
+    const y=fw.height/2+Math.sin(t*freq1*10)*amp*0.7+Math.sin(t*freq2*6+1.2)*amp*0.3;
+    x?fwx.lineTo(x,y):fwx.moveTo(x,y);
+  }fwx.stroke();
+  // fft: static bars shaped by centroid and energy
+  ffx.fillStyle='#0a0a0a';ffx.fillRect(0,0,ff.width,ff.height);
+  const bins=48,bw=ff.width/bins;
+  const peakBin=Math.min(bins-1,Math.round((song.centroid||1000)/8000*bins*0.8));
+  for(let i=0;i<bins;i++){
+    const dist=Math.abs(i-peakBin)/bins;
+    const v=Math.max(0.04,Math.exp(-dist*dist*14)*(song.energy||5)/20);
+    const bh=Math.max(2,Math.min(ff.height-2,v*ff.height*2.2));
+    const alpha=Math.min(1,0.3+v*2.2);
+    ffx.fillStyle=`rgba(29,185,84,${alpha})`;
+    ffx.fillRect(i*bw,ff.height-bh,Math.max(1,bw-1),bh);
+  }
+}
+function estimateDominantFreq(song){
+  if(!song) return '—';
+  if(song.centroid<900) return 110;
+  if(song.centroid<1800) return 220;
+  if(song.centroid<3200) return 440;
+  return 880;
+}
+function updateBandBars(song){
+  const bass=Math.max(8,Math.min(100,Math.round((12-(song.centroid/500))*8 + song.energy*3)));
+  const mid=Math.max(10,Math.min(100,Math.round(55 + song.energy*1.5 - Math.abs(song.centroid-2200)/80)));
+  const tre=Math.max(8,Math.min(100,Math.round(song.centroid/45)));
+  document.getElementById('fi-bass').style.width=bass+'%';
+  document.getElementById('fi-mid').style.width=mid+'%';
+  document.getElementById('fi-treble').style.width=tre+'%';
+}
+function updateTransitionReason(song,next){
+  const box=document.getElementById('transition-reason');
+  if(!box) return;
+  if(!song||!next||song.id===next.id){
+    box.innerHTML='Run recommendation and select a song to show why the AI picked the next track.';
+    return;
+  }
+  const bpmDiff=Math.abs(song.bpm-next.bpm);
+  const sim=simScore(song,next);
+  const energyDiff=Math.abs(song.energy-next.energy);
+  const energyMatch=energyDiff<3?'HIGH':energyDiff<7?'MEDIUM':'LOW';
+  const verdict=sim>=80?'Smooth transition predicted':sim>=60?'Good transition predicted':'Hard transition predicted';
+  box.innerHTML=`
+    <span class="hl">Current:</span> ${song.name}<br>
+    <span class="hl">Next:</span> ${next.name}<br><br>
+    Song A BPM: <span class="ai">${song.bpm}</span><br>
+    Song B BPM: <span class="ai">${next.bpm}</span><br>
+    Difference: <span class="${bpmDiff<=8?'ok':'bad'}">${bpmDiff} BPM ${bpmDiff<=8?'✓':'✗'}</span><br>
+    Spectral Similarity: <span class="ai">${sim}%</span><br>
+    Energy Match: <span class="${energyMatch==='LOW'?'bad':'ok'}">${energyMatch}</span><br><br>
+    Result: <span class="ai">${verdict}</span>`;
+}
+function updateSimilarityList(song){
+  const el=document.getElementById('similarity-list');
+  if(!el) return;
+  if(!song||playlist.length<2){el.innerHTML='<div class="empty" style="padding:8px;">Run analysis to compare songs</div>';return;}
+  const rows=playlist.filter(s=>s.id!==song.id).map(s=>({s,score:simScore(song,s)})).sort((a,b)=>b.score-a.score).slice(0,4);
+  el.innerHTML=rows.map(r=>`<div class="sim-row"><div><div class="sim-name">${r.s.name}</div><div class="sim-bg"><div class="sim-fill" style="width:${r.score}%"></div></div></div><div>${r.score}%</div></div>`).join('');
+}
+function toggleDSPMode(){
+  const el=document.getElementById('dsp-explain');
+  if(el) el.classList.toggle('show');
+}
+function renderPlaylist(){
+  const el=document.getElementById('playlist-output');
+  if(!playlist.length){el.innerHTML='<div class="empty">No songs</div>';return;}
+  const ss=smoothScore(playlist);
+  const conf=Math.min(100,Math.round(60+songs.length*2.5+ss*0.3));
+  document.getElementById('ml-conf-bar').style.width=conf+'%'; document.getElementById('ml-conf-val').textContent=conf+'%';
+  document.getElementById('smooth-bar').style.width=ss+'%'; document.getElementById('smooth-val').textContent=ss+'%';
+  if(currentIdx>=0&&playlist[currentIdx]) updateFourierEngine(playlist[currentIdx]);
+  let html=`<div class="pl-header"><span>#</span><span></span><span>TITLE</span><span>BPM</span><span>NEXT</span><span>DUR</span></div>`;
+  playlist.forEach((s,i)=>{
+    const tr=i<playlist.length-1?tLabel(s,playlist[i+1]):null;
+    let cls='pl-item';
+    if(amActive&&i===amIdx) cls+=' am-active';
+    else if(amActive&&i===amIdx+1) cls+=' am-next';
+    else if(!amActive&&i===currentIdx) cls+=' active';
+    html+=`<div class="${cls}" data-idx="${i}">
+      <div class="pl-num">${i+1}</div>
+      <div class="pl-dot"></div>
+      <div class="pl-name">${s.name}</div>
+      <div class="pl-bpm">${s.bpm}</div>
+      <div class="pl-tr ${tr?tr.cls:''}">${tr?tr.txt:'END'}</div>
+      <div class="pl-dur">${fmtT(s.duration)}</div>
+    </div>`;
+    if(tr) html+=`<div class="tr-arrow">↓ ±${Math.abs(s.bpm-playlist[i+1].bpm)} BPM · ${tr.cls}</div>`;
+  });
+  el.innerHTML=html;
+  el.querySelectorAll('.pl-item').forEach(row=>{
+    row.addEventListener('click',()=>{
+      if(amActive) stopAutoMix();
+      selectAndPlay(parseInt(row.dataset.idx,10));
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// RECOMMENDATION
+// ═══════════════════════════════════════════════════════
+function runRecommendation(){
+  const ready=songs.filter(s=>s.status==='ready');
+  if(!ready.length)return;
+  const btn=document.getElementById('rec-btn');
+  btn.disabled=true; btn.classList.add('running'); btn.textContent='⟳ ANALYZING...';
+  // Use setTimeout so the UI updates (button state) before the heavy computation starts
+  setTimeout(()=>{
+    // Always run full optimisation on ALL ready songs every time —
+    // this ensures new additions are woven into the best possible
+    // position rather than just appended at the end
+    playlist=bestOrder(ready);
+    if(currentIdx<0) currentIdx=0;
+    // Keep currentIdx pointing at the same song even after re-ordering
+    if(currentIdx>0&&playlist[currentIdx]){
+      const playingId=playlist[currentIdx]?playlist[currentIdx].id:null;
+      if(playingId){const ni=playlist.findIndex(s=>s.id===playingId);if(ni>=0)currentIdx=ni;}
+    }
+    renderPlaylist();
+    updateFourierEngine(playlist[currentIdx]);
+    btn.disabled=false; btn.classList.remove('running'); btn.textContent='✦ RE-ANALYZE & RECOMMEND';
+  },1000);
+}
+
+// ═══════════════════════════════════════════════════════
+// DECK PLAYBACK — low-level
+// ═══════════════════════════════════════════════════════
+function startDeck(deck, buf, offset, fadeInDur){
+  if(!AC||!buf) return;
+  // kill existing
+  if(deck.src){deck.src.onended=null;try{deck.src.stop();}catch(e){}}
+  const src=AC.createBufferSource();
+  src.buffer=buf;
+  src.connect(deck.gain);
+  deck.gain.gain.cancelScheduledValues(AC.currentTime);
+  if(fadeInDur>0){
+    deck.gain.gain.setValueAtTime(0.001, AC.currentTime);
+    deck.gain.gain.exponentialRampToValueAtTime(0.9, AC.currentTime+fadeInDur);
+  } else {
+    deck.gain.gain.setValueAtTime(0.9, AC.currentTime);
+  }
+  deck.buf=buf;
+  deck.offset=offset;
+  deck.startAC=AC.currentTime-offset;
+  // clamp offset so we don't start past end
+  const safeOff=Math.min(offset, buf.duration-0.1);
+  src.start(0, safeOff);
+  deck.src=src;
+  deck.playing=true;
+  return src;
+}
+
+function stopDeck(deck, fadeOutDur){
+  if(!deck.src||!deck.playing)return;
+  if(fadeOutDur>0){
+    deck.gain.gain.cancelScheduledValues(AC.currentTime);
+    deck.gain.gain.setValueAtTime(deck.gain.gain.value, AC.currentTime);
+    deck.gain.gain.linearRampToValueAtTime(0, AC.currentTime+fadeOutDur);
+    const src=deck.src;
+    setTimeout(()=>{src.onended=null;try{src.stop();}catch(e){}},fadeOutDur*1000+100);
+  } else {
+    deck.src.onended=null;
+    try{deck.src.stop();}catch(e){}
+  }
+  deck.playing=false;
+  deck.src=null;
+}
+
+function deckElapsed(deck){
+  if(!deck.playing||!deck.buf) return 0;
+  return Math.min(AC.currentTime-deck.startAC, deck.buf.duration);
+}
+
+// ═══════════════════════════════════════════════════════
+// MAIN PLAYER (manual mode)
+// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+// MAIN PLAYER (manual mode) — Spotify-style smooth transitions
+// ═══════════════════════════════════════════════════════
+
+/* Crossfade duration in seconds — both auto-advance and manual skips */
+const XFADE_DUR = 2.5;
+
+// Token: incremented on every selectAndPlay call so stale timers self-cancel
+let currentToken = 0;
+let manualXfadeTimer = null;
+
+function selectAndPlay(idx){
+  if(idx < 0 || idx >= playlist.length) return;
+
+  clearTimeout(manualXfadeTimer);
+  manualXfadeTimer = null;
+  const myToken = ++currentToken;
+
+  const wasPlaying = deckA.playing;
+  currentIdx = idx;
+  const song = playlist[idx];
+
+  // Animate track name out
+  const pnEl = document.getElementById('pname');
+  pnEl.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+  pnEl.style.opacity = '0';
+  pnEl.style.transform = 'translateY(8px)';
+
+  // Crossfade old track out
+  if(wasPlaying && deckA.src){
+    const dying = deckA.src;
+    dying.onended = null;
+    deckA.gain.gain.cancelScheduledValues(AC.currentTime);
+    deckA.gain.gain.setValueAtTime(Math.max(0.001, deckA.gain.gain.value), AC.currentTime);
+    deckA.gain.gain.exponentialRampToValueAtTime(0.001, AC.currentTime + XFADE_DUR);
+    setTimeout(()=>{ try{ dying.stop(); }catch(e){} }, (XFADE_DUR + 0.2) * 1000);
+    deckA.src = null;
+    deckA.playing = false;
+  } else {
+    stopDeck(deckA, 0);
+  }
+
+  updatePlayerUI(song, 0);
+  updateFourierEngine(song);
+
+  // Start new track with fade-in
+  const src = AC.createBufferSource();
+  src.buffer = song.buffer;
+  src.connect(deckA.gain);
+  deckA.gain.gain.cancelScheduledValues(AC.currentTime);
+  deckA.gain.gain.setValueAtTime(0.001, AC.currentTime);
+  deckA.gain.gain.exponentialRampToValueAtTime(0.9, AC.currentTime + XFADE_DUR);
+  deckA.buf     = song.buffer;
+  deckA.offset  = 0;
+  deckA.startAC = AC.currentTime;
+  src.start(0, 0);
+  deckA.src     = src;
+  deckA.playing = true;
+
+  // onended = safety net only (lookahead should always fire first)
+  src.onended = ()=>{
+    if(myToken !== currentToken) return;
+    if(amActive) return;
+    deckA.playing = false;
+    document.getElementById('play-btn').textContent = '▶';
+    document.getElementById('disc').classList.remove('spin');
+  };
+
+  document.getElementById('play-btn').textContent = '⏸';
+  document.getElementById('disc').classList.add('spin');
+
+  setTimeout(()=>{
+    pnEl.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+    pnEl.style.opacity = '1';
+    pnEl.style.transform = 'translateY(0)';
+  }, 120);
+
+  renderPlaylist();
+  tickProg();
+
+  // Schedule the auto-advance crossfade
+  scheduleAutoAdvance(myToken, song.buffer.duration);
+}
+
+function scheduleAutoAdvance(token, totalDuration){
+  if(amActive) return;
+  // Fire XFADE_DUR seconds before the song ends
+  const msUntilCrossfade = Math.max(0, (totalDuration - XFADE_DUR) * 1000);
+
+  manualXfadeTimer = setTimeout(()=>{
+    if(token !== currentToken) return; // a newer track took over
+    if(amActive) return;
+
+    if(isLoop){
+      selectAndPlay(currentIdx);
+    } else {
+      const nxt = isShuffle
+        ? Math.floor(Math.random() * playlist.length)
+        : (currentIdx + 1 < playlist.length ? currentIdx + 1 : -1);
+      if(nxt >= 0) selectAndPlay(nxt);
+      // -1 = end of playlist, let track finish naturally
+    }
+  }, msUntilCrossfade);
+}
+
+function updatePlayerUI(song, offset){
+  document.getElementById('pname').textContent=song.name;
+  document.getElementById('pbpm').textContent=(song.bpm||'—')+' BPM  ';
+  document.getElementById('pkey').textContent=song.key||'—';
+  document.getElementById('ttot').textContent=fmtT(song.duration);
+  document.getElementById('tcur').textContent=fmtT(offset);
+  document.getElementById('pf').style.width=(offset/Math.max(song.duration,1)*100)+'%';
+}
+
+function showAMRegion(song){
+  const reg=document.getElementById('am-region');
+  if(!song||!song.duration){reg.style.display='none';return;}
+  const off=parseFloat(document.getElementById('am-offset').value)||10;
+  const dur=parseFloat(document.getElementById('am-duration').value)||20;
+  const start=Math.min(off,song.duration)/song.duration*100;
+  const end=Math.min(off+dur,song.duration)/song.duration*100;
+  reg.style.left=start+'%';
+  reg.style.width=(end-start)+'%';
+  reg.style.display='block';
+}
+
+function tickProg(){
+  if(!deckA.playing&&!amActive) return;
+  const deck=amActive?deckA:deckA;
+  if(!deck.buf) return;
+  const el=deckElapsed(deck);
+  const pct=Math.min(el/deck.buf.duration*100,100);
+  document.getElementById('pf').style.width=pct+'%';
+  document.getElementById('tcur').textContent=fmtT(el);
+  requestAnimationFrame(tickProg);
+}
+
+function togglePlay(){
+  if(!AC||!deckA.buf){initAC();return;}
+  if(amActive) return; // auto mix controls playback
+  if(deckA.playing){
+    deckA.offset=deckElapsed(deckA);
+    stopDeck(deckA,0);
+    clearTimeout(manualXfadeTimer); manualXfadeTimer=null;
+    document.getElementById('play-btn').textContent='▶';
+    document.getElementById('disc').classList.remove('spin');
+  } else {
+    startDeck(deckA, deckA.buf, deckA.offset, 0);
+    document.getElementById('play-btn').textContent='⏸';
+    document.getElementById('disc').classList.add('spin');
+    tickProg();
+    // Re-schedule lookahead from resumed position
+    if(deckA.src && deckA.buf) scheduleAutoAdvance(currentToken, deckA.buf.duration - deckA.offset);
+  }
+}
+function seekTo(e){
+  if(!deckA.buf||amActive)return;
+  const r=document.getElementById('pw').getBoundingClientRect();
+  const off=Math.max(0,(e.clientX-r.left)/r.width*deckA.buf.duration);
+  clearTimeout(manualXfadeTimer); manualXfadeTimer=null;
+  deckA.offset=off;
+  if(deckA.playing){
+    startDeck(deckA,deckA.buf,off,0);
+    scheduleAutoAdvance(currentToken, deckA.buf.duration - off);
+  }
+  else{document.getElementById('pf').style.width=(off/deckA.buf.duration*100)+'%';document.getElementById('tcur').textContent=fmtT(off);}
+}
+function nextTrack(){if(!playlist.length||amActive)return;selectAndPlay((currentIdx+1)%playlist.length);}
+function prevTrack(){if(!playlist.length||amActive)return;selectAndPlay((currentIdx-1+playlist.length)%playlist.length);}
+function toggleLoop(){isLoop=!isLoop;const b=document.getElementById('loop-btn');b.style.color=isLoop?'#7080ff':'';b.style.borderColor=isLoop?'#5060ff':'';}
+function toggleShuffle(){isShuffle=!isShuffle;const b=document.getElementById('shuf-btn');b.style.color=isShuffle?'#f0a800':'';b.style.borderColor=isShuffle?'#a07000':'';}
+function setVol(v){if(masterGain)masterGain.gain.setTargetAtTime(v/100,AC.currentTime,0.05);document.getElementById('vol-v').textContent=v+'%';}
+
+// ═══════════════════════════════════════════════════════
+// AUTO MIX ENGINE
+// ═══════════════════════════════════════════════════════
+function toggleAutoMix(){
+  if(!AC) initAC();
+  if(amActive) stopAutoMix();
+  else startAutoMix();
+}
+
+function startAutoMix(){
+  if(!playlist.length){alert('Run the analysis first to build a playlist.');return;}
+  if(AC.state==='suspended') AC.resume();
+  amActive=true;
+  amIdx=currentIdx>=0?currentIdx:0;
+  // Set btn state
+  const btn=document.getElementById('am-start-btn');
+  btn.classList.add('on');
+  document.getElementById('am-btn-icon').textContent='⏹';
+  document.getElementById('am-btn-label').textContent='STOP MIX';
+  amPlaySegment(amIdx);
+}
+
+function stopAutoMix(){
+  amActive=false;
+  clearTimeout(amTimerA); clearTimeout(amTimerB);
+  cancelAnimationFrame(amXfadeRAF); cancelAnimationFrame(amProgRAF);
+  amTimerA=null; amTimerB=null;
+  stopDeck(deckA,0.5); stopDeck(deckB,0.5);
+  deckA.playing=false; deckB.playing=false;
+  const btn=document.getElementById('am-start-btn');
+  btn.classList.remove('on');
+  document.getElementById('am-btn-icon').textContent='▶';
+  document.getElementById('am-btn-label').textContent='AUTO MIX';
+  document.getElementById('am-progress-track').style.width='0%';
+  document.getElementById('am-progress-label').textContent='STOPPED';
+  document.getElementById('am-now').textContent='—';
+  document.getElementById('am-next').textContent='—';
+  document.getElementById('am-countdown').textContent='';
+  document.getElementById('disc').classList.remove('spin');
+  document.getElementById('play-btn').textContent='▶';
+  resetXfadeViz();
+  renderPlaylist();
+}
+
+function amPlaySegment(idx){
+  if(!amActive) return;
+  if(idx>=playlist.length){
+    // Reached end — loop back or stop
+    amIdx=0;
+    amPlaySegment(0);
+    return;
+  }
+  amIdx=idx;
+  const song=playlist[idx];
+  const dur=parseFloat(document.getElementById('am-duration').value)||20;
+  const off=parseFloat(document.getElementById('am-offset').value)||10;
+  const xfade=parseFloat(document.getElementById('am-xfade').value)||3;
+  amXfadeDur=xfade;
+
+  // Safe offset — don't start past end
+  const safeOff=Math.min(off, Math.max(0, song.duration-dur-1));
+
+  // Start deck A (current song)
+  startDeck(deckA, song.buffer, safeOff, 0);
+  document.getElementById('disc').classList.add('spin');
+  document.getElementById('play-btn').textContent='⏸';
+  updatePlayerUI(song, safeOff);
+  updateFourierEngine(song);
+  // auto mix region removed
+
+  // Update currentIdx for playlist highlight
+  currentIdx=idx;
+  renderPlaylist();
+
+  // Load stems for current song
+  // stems removed
+
+  amSegStart=AC.currentTime;
+
+  // Update status bar
+  const nextSong=playlist[(idx+1)%playlist.length];
+  document.getElementById('am-now').textContent='▶ '+song.name.substring(0,28);
+  document.getElementById('am-next').textContent='NEXT: '+(nextSong?nextSong.name.substring(0,22):'—');
+
+  // Progress + countdown animation
+  cancelAnimationFrame(amProgRAF);
+  tickAMProgress(dur, xfade);
+
+  // Timer 1: at (dur - xfade) seconds → begin crossfade
+  clearTimeout(amTimerA); clearTimeout(amTimerB);
+  const xfadeStartMs=(dur-xfade)*1000;
+  amTimerA=setTimeout(()=>{
+    if(!amActive) return;
+    beginCrossfade(idx, xfade);
+  }, xfadeStartMs);
+
+  // Timer 2: at dur seconds → cut deck A fully, deck B becomes deck A
+  amTimerB=setTimeout(()=>{
+    if(!amActive) return;
+    finishCrossfade(idx);
+  }, dur*1000);
+}
+
+function beginCrossfade(fromIdx, xfadeDur){
+  if(!amActive) return;
+  const nextIdx=(fromIdx+1)%playlist.length;
+  const nextSong=playlist[nextIdx];
+  if(!nextSong||!nextSong.buffer) return;
+
+  const off=parseFloat(document.getElementById('am-offset').value)||10;
+  const safeOff=Math.min(off, Math.max(0, nextSong.duration-5));
+
+  // Start deck B (incoming) with fade-in
+  startDeck(deckB, nextSong.buffer, safeOff, xfadeDur);
+
+  // Fade out deck A — exponential for natural volume perception
+  if(deckA.src&&deckA.playing){
+    deckA.gain.gain.cancelScheduledValues(AC.currentTime);
+    deckA.gain.gain.setValueAtTime(Math.max(0.001, deckA.gain.gain.value), AC.currentTime);
+    deckA.gain.gain.exponentialRampToValueAtTime(0.001, AC.currentTime+xfadeDur);
+  }
+
+  // Animate crossfade viz
+  amXfadeStart=AC.currentTime;
+  cancelAnimationFrame(amXfadeRAF);
+  animateXfade(xfadeDur);
+
+  document.getElementById('am-progress-label').textContent='⇌ CROSSFADING…';
+}
+
+function finishCrossfade(fromIdx){
+  if(!amActive) return;
+  // Kill deck A completely
+  stopDeck(deckA, 0);
+  // Swap: deck B becomes deck A
+  const tmp=deckA; deckA=deckB; deckB=tmp;
+  // Reset deckB state
+  deckB.src=null; deckB.playing=false; deckB.buf=null;
+  deckB.gain.gain.cancelScheduledValues(AC.currentTime);
+  deckB.gain.gain.setValueAtTime(0, AC.currentTime);
+
+  resetXfadeViz();
+  const nextIdx=(fromIdx+1)%playlist.length;
+  amPlaySegment(nextIdx);
+}
+
+function tickAMProgress(dur, xfade){
+  if(!amActive) return;
+  const elapsed=AC.currentTime-amSegStart;
+  const pct=Math.min(elapsed/dur*100,100);
+  document.getElementById('am-progress-track').style.width=pct+'%';
+  const remaining=Math.max(0,dur-elapsed);
+  if(remaining<=xfade){
+    document.getElementById('am-progress-label').textContent='⇌ CROSSFADING…';
+  } else {
+    document.getElementById('am-progress-label').textContent=fmtT(elapsed)+' / '+fmtT(dur);
+  }
+  const cd=Math.ceil(remaining);
+  document.getElementById('am-countdown').textContent=remaining<=10?`${cd}s remaining`:'';
+  amProgRAF=requestAnimationFrame(()=>tickAMProgress(dur,xfade));
+}
+
+// ═══════════════════════════════════════════════════════
+// CROSSFADE VISUALIZER
+// ═══════════════════════════════════════════════════════
+function buildXfadeViz(){
+  const viz=document.getElementById('xfade-viz');
+  viz.innerHTML='';
+  for(let i=0;i<40;i++){
+    const ba=document.createElement('div');
+    ba.className='xfade-bar xfade-a';
+    ba.id='xfa-'+i;
+    ba.style.height='100%';
+    const bb=document.createElement('div');
+    bb.className='xfade-bar xfade-b';
+    bb.id='xfb-'+i;
+    bb.style.height='0%';
+    viz.appendChild(ba);
+    viz.appendChild(bb);
+  }
+}
+
+function animateXfade(dur){
+  const now=AC.currentTime;
+  const elapsed=now-amXfadeStart;
+  const t=Math.min(elapsed/dur,1);
+  // Deck A: fade out (1 → 0), Deck B: fade in (0 → 1)
+  for(let i=0;i<40;i++){
+    const posA=i/40; // normalized bar position
+    const aH=Math.max(0,(1-t)*100);
+    const bH=Math.max(0,t*100);
+    const ea=document.getElementById('xfa-'+i);
+    const eb=document.getElementById('xfb-'+i);
+    if(ea) ea.style.height=aH+'%';
+    if(eb) eb.style.height=bH+'%';
+  }
+  if(t<1&&amActive){
+    amXfadeRAF=requestAnimationFrame(()=>animateXfade(dur));
+  }
+}
+
+function resetXfadeViz(){
+  for(let i=0;i<40;i++){
+    const ea=document.getElementById('xfa-'+i);
+    const eb=document.getElementById('xfb-'+i);
+    if(ea) ea.style.height='100%';
+    if(eb) eb.style.height='0%';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// STEMS
+// ═══════════════════════════════════════════════════════
+function loadStems(song){
+  if(!song||!song.buffer) return;
+  vBuf=song.buffer; bBuf=song.buffer; vOffset=0; bOffset=0;
+  document.getElementById('vox-name').textContent=song.name;
+  document.getElementById('beat-name').textContent=song.name;
+  document.getElementById('vox-st').textContent='Ready — press ▶';
+  document.getElementById('beat-st').textContent='Ready — press ▶';
+  killStem('v',false); killStem('b',false);
+}
+function toggleStem(stem){
+  initAC();
+  if(stem==='v') vPlaying?killStem('v',true):playStem('v');
+  else bPlaying?killStem('b',true):playStem('b');
+}
+function playStem(stem){
+  if(!AC)return;
+  if(AC.state==='suspended')AC.resume();
+  const isV=stem==='v', buf=isV?vBuf:bBuf;
+  if(!buf){document.getElementById(isV?'vox-st':'beat-st').textContent='Pick a track first';return;}
+  killStem(stem,false);
+  const src=AC.createBufferSource(); src.buffer=buf;
+  src.connect(isV?vHp:bLp);
+  const off=isV?vOffset:bOffset;
+  if(isV){vStart=AC.currentTime-off;src.start(0,off);vSrc=src;vPlaying=true;}
+  else{bStart=AC.currentTime-off;src.start(0,off);bSrc=src;bPlaying=true;}
+  const btn=document.getElementById(isV?'vox-btn':'beat-btn');
+  btn.textContent='⏸'; btn.className='spbtn '+(isV?'av':'ab');
+  document.getElementById(isV?'vox-st':'beat-st').textContent=`▶ Playing ${isV?'vocal':'beat'} stem…`;
+  src.onended=()=>{
+    if(isV&&src===vSrc){vPlaying=false;resetStemBtn('v');}
+    if(!isV&&src===bSrc){bPlaying=false;resetStemBtn('b');}
+  };
+}
+function killStem(stem,saveOff){
+  const isV=stem==='v';
+  if(isV){if(vSrc){if(saveOff)vOffset=AC.currentTime-vStart;vSrc.onended=null;try{vSrc.stop();}catch(e){}vSrc=null;}vPlaying=false;if(saveOff)resetStemBtn('v');}
+  else{if(bSrc){if(saveOff)bOffset=AC.currentTime-bStart;bSrc.onended=null;try{bSrc.stop();}catch(e){}bSrc=null;}bPlaying=false;if(saveOff)resetStemBtn('b');}
+}
+function resetStemBtn(stem){
+  const isV=stem==='v';
+  const btn=document.getElementById(isV?'vox-btn':'beat-btn');
+  btn.textContent='▶'; btn.className='spbtn';
+  document.getElementById(isV?'vox-st':'beat-st').textContent='Paused';
+}
+function setStemVol(stem,v){if(!AC)return;const g=stem==='v'?vGain:bGain;if(g)g.gain.setTargetAtTime(v/100,AC.currentTime,0.05);document.getElementById(stem==='v'?'vox-vol-v':'beat-vol-v').textContent=v+'%';}
+
+// ═══════════════════════════════════════════════════════
+// EQ
+// ═══════════════════════════════════════════════════════
+function updateEQ(band,val){
+  const db=parseFloat(val); if(!AC)return;
+  if(band==='bass')bassF.gain.setTargetAtTime(db,AC.currentTime,0.05);
+  if(band==='mid')midF.gain.setTargetAtTime(db,AC.currentTime,0.05);
+  if(band==='treble')treF.gain.setTargetAtTime(db,AC.currentTime,0.05);
+  document.getElementById(`eq-${band}-db`).textContent=(db>=0?'+':'')+db+' dB';
+  document.querySelectorAll('.ep-btn').forEach(b=>b.classList.remove('active'));
+}
+function applyPreset(key,label){
+  const [b,m,t]=EQ_PRESETS[key]||[0,0,0];
+  document.getElementById('eq-bass').value=b; updateEQ('bass',b);
+  document.getElementById('eq-mid').value=m; updateEQ('mid',m);
+  document.getElementById('eq-treble').value=t; updateEQ('treble',t);
+  document.querySelectorAll('.ep-btn').forEach(btn=>btn.classList.toggle('active',btn.textContent===label));
+}
+
+// ═══════════════════════════════════════════════════════
+// FX
+// ═══════════════════════════════════════════════════════
+function buildFX(){
+  const row=document.getElementById('fx-row'); row.innerHTML='';
+  FX_LIST.forEach(fx=>{
+    const b=document.createElement('button');
+    b.className='fx-chip'; b.id='fx-'+fx.k; b.textContent=fx.l;
+    b.onclick=()=>toggleFX(fx.k,b); row.appendChild(b);
+  });
+}
+function toggleFX(k,b){if(activeFX.has(k)){activeFX.delete(k);b.classList.remove('on');fxOff(k);}else{activeFX.add(k);b.classList.add('on');fxOn(k);}}
+function fxOn(k){if(!AC)return;if(k==='lowpass')lpF.frequency.setTargetAtTime(600,AC.currentTime,.1);if(k==='highpass')hpF.frequency.setTargetAtTime(1200,AC.currentTime,.1);if(k==='stutter'){let on=true;stutterIv=setInterval(()=>{masterGain.gain.setTargetAtTime(on?0:.8,AC.currentTime,.01);on=!on;},80);}if(k==='scratch'){scratchIv=setInterval(()=>{if(deckA.src)deckA.src.playbackRate.setTargetAtTime(.3+Math.random()*2,AC.currentTime,.02);},120);}if(k==='bitcrush'){midF.gain.setTargetAtTime(-12,AC.currentTime,.05);treF.gain.setTargetAtTime(-14,AC.currentTime,.05);}if(k==='reverb'){midF.Q.value=4;midF.gain.setTargetAtTime(6,AC.currentTime,.1);}if(k==='flanger'){midF.Q.value=8;midF.frequency.value=800;}}
+function fxOff(k){if(!AC)return;if(k==='lowpass')lpF.frequency.setTargetAtTime(22000,AC.currentTime,.3);if(k==='highpass')hpF.frequency.setTargetAtTime(0,AC.currentTime,.3);if(k==='stutter'){clearInterval(stutterIv);masterGain.gain.setTargetAtTime(.8,AC.currentTime,.05);}if(k==='scratch'){clearInterval(scratchIv);if(deckA.src)deckA.src.playbackRate.setTargetAtTime(1,AC.currentTime,.1);}if(k==='bitcrush'){midF.gain.setTargetAtTime(0,AC.currentTime,.3);treF.gain.setTargetAtTime(0,AC.currentTime,.3);}if(k==='reverb'){midF.Q.value=.8;midF.gain.setTargetAtTime(0,AC.currentTime,.3);}if(k==='flanger'){midF.Q.value=.8;midF.frequency.value=1200;}}
+
+// ═══════════════════════════════════════════════════════
+// VISUALIZER
+// ═══════════════════════════════════════════════════════
+function startViz(){
+  const fc=document.getElementById('fft-canvas'),wc=document.getElementById('wave-canvas');
+  const vc=document.getElementById('vox-canvas'),bc=document.getElementById('beat-canvas');
+  const fw=document.getElementById('fi-wave'),ff=document.getElementById('fi-fft');
+  const fx=fc.getContext('2d'),wx=wc.getContext('2d'),vx=vc.getContext('2d'),bx=bc.getContext('2d');
+  const fwx=fw.getContext('2d'),ffx=ff.getContext('2d');
+  function draw(){
+    requestAnimationFrame(draw);
+    fx.fillStyle='#121212';fx.fillRect(0,0,fc.width,fc.height);
+    wx.fillStyle='#121212';wx.fillRect(0,0,wc.width,wc.height);
+    vx.fillStyle='#121212';vx.fillRect(0,0,vc.width,vc.height);
+    bx.fillStyle='#121212';bx.fillRect(0,0,bc.width,bc.height);
+    fwx.fillStyle='#0a0a0a';fwx.fillRect(0,0,fw.width,fw.height);
+    ffx.fillStyle='#0a0a0a';ffx.fillRect(0,0,ff.width,ff.height);
+    if(!mainAn){
+      // idle animation for main FFT/wave
+      fx.strokeStyle='#282828';fx.lineWidth=1;fx.beginPath();for(let x=0;x<fc.width;x++){const y=fc.height-4-Math.sin(x*.05+Date.now()*.001)*3;x?fx.lineTo(x,y):fx.moveTo(x,y);}fx.stroke();
+      // idle animation for fi-wave (time domain)
+      fwx.strokeStyle='#1a3a24';fwx.lineWidth=1.2;fwx.beginPath();
+      for(let x=0;x<fw.width;x++){const y=fw.height/2+Math.sin(x*.04+Date.now()*.0009)*5+Math.sin(x*.09+Date.now()*.0013)*2;x?fwx.lineTo(x,y):fwx.moveTo(x,y);}fwx.stroke();
+      // idle animation for fi-fft (frequency domain) — low ghostly bars
+      const ibl=32,ibw=ff.width/ibl;
+      for(let i=0;i<ibl;i++){const v=(Math.sin(i*.4+Date.now()*.0008)+1)/2*0.12;const bh=Math.max(2,v*ff.height);ffx.fillStyle=`rgba(29,185,84,${0.08+v*0.15})`;ffx.fillRect(i*ibw,ff.height-bh,Math.max(1,ibw-1),bh);}
+      return;
+    }
+    const bl=mainAn.frequencyBinCount,fd=new Uint8Array(bl),td=new Uint8Array(bl);
+    mainAn.getByteFrequencyData(fd);mainAn.getByteTimeDomainData(td);
+    const bw=(fc.width/bl)*2.1;let x=0;
+    for(let i=0;i<bl;i++){const v=fd[i]/255,bh=v*fc.height;const g=Math.round(21+v*164);const b=Math.round(36+v*48);fx.fillStyle=`rgb(${Math.round(v*10)},${g},${b})`;fx.fillRect(x,fc.height-bh,Math.max(1,bw-1),bh);x+=bw+.5;}
+    wx.strokeStyle='#1db954';wx.lineWidth=1.5;wx.beginPath();const sw=wc.width/bl;
+    for(let i=0;i<bl;i++){const v=td[i]/128-1,y=wc.height/2+v*(wc.height/2-3);i?wx.lineTo(i*sw,y):wx.moveTo(i*sw,y);}wx.stroke();
+    fwx.strokeStyle='#1db954';fwx.lineWidth=1.4;fwx.beginPath();
+    for(let i=0;i<bl;i++){const v=td[i]/128-1,y=fw.height/2+v*(fw.height/2-4);i?fwx.lineTo(i*(fw.width/bl),y):fwx.moveTo(i*(fw.width/bl),y);}fwx.stroke();
+    const fbw=(ff.width/bl)*2.1;let fx2=0;
+    for(let i=0;i<bl;i++){const v=fd[i]/255,bh=v*ff.height;const g=Math.round(21+v*164);ffx.fillStyle=`rgb(${Math.round(v*10)},${g},${Math.round(36+v*48)})`;ffx.fillRect(fx2,ff.height-bh,Math.max(1,fbw-1),bh);fx2+=fbw+.5;}
+    if(vAn&&vPlaying){const vd=new Uint8Array(vAn.frequencyBinCount);vAn.getByteFrequencyData(vd);const vbw=vc.width/vd.length;for(let i=0;i<vd.length;i++){const v=vd[i]/255,bh=v*vc.height;vx.fillStyle=`rgba(29,185,84,${0.4+v*0.6})`;vx.fillRect(i*vbw,vc.height-bh,Math.max(1,vbw-.5),bh);}}
+    else{vx.strokeStyle='#1a3a24';vx.lineWidth=1;vx.beginPath();for(let x=0;x<vc.width;x++){const y=vc.height/2+Math.sin(x*.08+Date.now()*.0008)*4;x?vx.lineTo(x,y):vx.moveTo(x,y);}vx.stroke();}
+    if(bAn&&bPlaying){const bd2=new Uint8Array(bAn.frequencyBinCount);bAn.getByteFrequencyData(bd2);const bbw=bc.width/bd2.length;for(let i=0;i<bd2.length;i++){const v=bd2[i]/255,bh=v*bc.height;bx.fillStyle=`rgba(30,215,96,${0.3+v*0.7})`;bx.fillRect(i*bbw,bc.height-bh,Math.max(1,bbw-.5),bh);}}
+    else{bx.strokeStyle='#1a3a24';bx.lineWidth=1;bx.beginPath();for(let x=0;x<bc.width;x++){const y=bc.height/2+Math.sin(x*.06+Date.now()*.0012)*4;x?bx.lineTo(x,y):bx.moveTo(x,y);}bx.stroke();}
+  }
+  draw();
+}
+
+// ═══════════════════════════════════════════════════════
+// DRAG & DROP
+// ═══════════════════════════════════════════════════════
+const dz=document.getElementById('dropzone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');handleFiles(e.dataTransfer.files);});
+document.getElementById('file-input').onchange=e=>handleFiles(e.target.files);
+buildFX();
+startViz();
+</script>
+</body>
+</html>
